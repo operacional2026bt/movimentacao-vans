@@ -2,10 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="mobile-web-app-capable" content="yes">
     <title>Movimentação de Vans</title>
     <script src="motoristas.js"></script>
     <style>
@@ -25,18 +22,28 @@
             background-color: #1e1e1e; border: 1px solid #333; color: white;
             padding: 12px; border-radius: 8px; font-size: 16px; outline: none; width: 100%;
         }
-        select:focus, input:focus { border-color: #00e676; }
+        .nome-display {
+            font-size: 18px; font-weight: bold; color: #00e676;
+            padding: 10px 5px; min-height: 40px; display: block;
+        }
         input.required-empty { border-color: #ff5252 !important; }
         #preview-container { display: none; margin-top: 10px; margin-bottom: 20px; }
         .preview-box {
             background-color: #1a1a1a; border-left: 4px solid #00e676;
-            padding: 15px; border-radius: 4px; font-size: 14px; white-space: pre-wrap; color: #aaa;
+            padding: 15px; border-radius: 4px; font-size: 14px; white-space: pre-wrap; color: #aaa; margin-bottom: 10px;
         }
         .btn-copy {
             background-color: #00e676; color: #000; border: none; padding: 15px;
-            border-radius: 8px; font-weight: bold; font-size: 16px; width: 100%; margin-bottom: 10px;
+            border-radius: 8px; font-weight: bold; font-size: 16px; width: 100%; cursor: pointer;
         }
-        .btn-clear { background-color: #333; color: #e0e0e0; border: none; padding: 10px; border-radius: 8px; width: 100%; }
+        .btn-short {
+            background-color: #00c853; color: #000; border: none; padding: 10px;
+            border-radius: 8px; font-weight: bold; font-size: 13px; width: 100%; margin-top: 8px; cursor: pointer;
+        }
+        .btn-clear { 
+            background-color: #333; color: #e0e0e0; border: none; padding: 10px; 
+            border-radius: 8px; width: 100%; margin-top: 15px; cursor: pointer;
+        }
         .status-msg { text-align: center; font-size: 12px; margin-top: 10px; color: #00e676; visibility: hidden; }
         .footer-sig { margin-top: 40px; font-size: 10px; color: #444; text-align: center; }
     </style>
@@ -68,12 +75,12 @@
 
     <div class="form-group">
         <label id="label-quantidade">Qtd. Integrantes</label>
-        <input type="number" id="quantidade" placeholder="Ex: 12" oninput="validarVisibilidade()">
+        <input type="number" id="quantidade" placeholder="Ex: 13" oninput="validarVisibilidade()">
     </div>
 
     <div class="form-group">
         <label>Número da Van</label>
-        <input type="text" id="van" placeholder="Ex: 156" oninput="validarVisibilidade()">
+        <input type="text" id="van" placeholder="Ex: VTR 130" oninput="validarVisibilidade()">
     </div>
 
     <div class="form-group">
@@ -82,18 +89,24 @@
     </div>
 
     <div class="form-group">
-        <label id="label-motorista">Motorista</label>
-        <input type="text" id="nome" readonly style="background-color: #121212; color: #00e676;" placeholder="Nome automático">
+        <label id="label-motorista">Motorista Identificado:</label>
+        <span id="nome-exibicao" class="nome-display">Aguardando matrícula...</span>
     </div>
 
     <div id="preview-container">
+        <label style="color: #00e676; font-size: 11px;">RELATÓRIO COMPLETO:</label>
         <div id="preview" class="preview-box"></div>
+        
+        <label style="color: #00e676; font-size: 11px;">INFORME RÁPIDO (RESUMO):</label>
+        <div id="preview-curto" class="preview-box"></div>
     </div>
 
-    <button class="btn-copy" id="btnCopiar" onclick="copiarRelatorio()">COPIAR INFORMAÇÃO</button>
-    <button class="btn-clear" onclick="limparCampos()">LIMPAR</button>
+    <button class="btn-copy" id="btnCopiar" onclick="copiarRelatorio('completo')">COPIAR RELATÓRIO</button>
+    <button class="btn-short" id="btnCopiarCurto" onclick="copiarRelatorio('curto')">COPIAR CURTO (WHATSAPP)</button>
+    
+    <button class="btn-clear" onclick="limparCampos()">LIMPAR TUDO</button>
 
-    <p id="status" class="status-msg">Copiado para a área de transferência! ✅</p>
+    <p id="status" class="status-msg">Copiado com sucesso! ✅</p>
 
     <div class="footer-sig">By Tiago C Araujo -- Mat 3240 -- Bel-tour</div>
 </div>
@@ -101,37 +114,46 @@
 <script>
     const sH = document.getElementById('hora');
     const sM = document.getElementById('minuto');
+    
     for(let i=0; i<24; i++) { let h = i<10?'0'+i:i; sH.options[sH.options.length] = new Option(h, h); }
     for(let i=0; i<60; i++) { let m = i<10?'0'+i:i; sM.options[sM.options.length] = new Option(m, m); }
 
+    const agora = new Date();
+    sH.value = agora.getHours() < 10 ? '0' + agora.getHours() : agora.getHours();
+    sM.value = agora.getMinutes() < 10 ? '0' + agora.getMinutes() : agora.getMinutes();
+
+    function obterSaudacao() {
+        const h = parseInt(sH.value);
+        const mi = parseInt(sM.value);
+        
+        // Bom dia: 00:01 até 11:59
+        if ((h === 0 && mi >= 1) || (h > 0 && h < 12)) return "Bom dia!";
+        // Boa tarde: 12:00 até 18:00
+        if (h >= 12 && h <= 18) {
+            if (h === 18 && mi > 0) return "Boa noite!";
+            return "Boa tarde!";
+        }
+        // Boa noite: 18:01 até 00:00
+        return "Boa noite!";
+    }
+
     function buscarMotorista() {
         const mat = document.getElementById('matricula').value;
-        const nomeInput = document.getElementById('nome');
-        
+        const display = document.getElementById('nome-exibicao');
         if (typeof bancoMotoristas !== 'undefined' && bancoMotoristas[mat]) {
-            nomeInput.value = bancoMotoristas[mat];
-            nomeInput.classList.remove('required-empty');
+            display.innerText = bancoMotoristas[mat];
+            display.style.color = "#00e676";
         } else {
-            nomeInput.value = mat ? "NÃO ENCONTRADO" : "";
+            display.innerText = mat ? "MOTORISTA NÃO LOCALIZADO" : "Aguardando matrícula...";
+            display.style.color = mat ? "#ff5252" : "#444";
         }
         validarVisibilidade();
     }
 
     function verificarTipo() {
-        const embarque = document.getElementById('embarque').value;
-        const labelQtd = document.getElementById('label-quantidade');
-        const inputQtd = document.getElementById('quantidade');
-        const labelMat = document.getElementById('label-matricula');
-
-        if (embarque === "ABASTECIMENTO") {
-            labelQtd.innerText = "KM";
-            inputQtd.placeholder = "Digite o KM atual";
-            labelMat.innerText = "Matrícula (OBRIGATÓRIO)";
-        } else {
-            labelQtd.innerText = "Qtd. Integrantes";
-            inputQtd.placeholder = "Ex: 12";
-            labelMat.innerText = "Matrícula";
-        }
+        const emb = document.getElementById('embarque').value;
+        document.getElementById('label-quantidade').innerText = (emb === "ABASTECIMENTO") ? "KM" : "Qtd. Integrantes";
+        document.getElementById('label-matricula').innerText = (emb === "ABASTECIMENTO") ? "Matrícula (OBRIGATÓRIO)" : "Matrícula";
         validarVisibilidade();
     }
 
@@ -139,46 +161,50 @@
         const q = document.getElementById('quantidade').value;
         const v = document.getElementById('van').value;
         const m = document.getElementById('matricula').value;
-        const n = document.getElementById('nome').value;
-        const embarque = document.getElementById('embarque').value;
         
-        const container = document.getElementById('preview-container');
+        document.getElementById('preview-container').style.display = (q || v || m) ? 'block' : 'none';
+        
+        const emb = document.getElementById('embarque').value;
+        const n = document.getElementById('nome-exibicao').innerText;
         const btn = document.getElementById('btnCopiar');
-        const matInput = document.getElementById('matricula');
+        const btnC = document.getElementById('btnCopiarCurto');
 
-        container.style.display = (q || v || m || n) ? 'block' : 'none';
-
-        if (embarque === "ABASTECIMENTO" && (!m || n === "NÃO ENCONTRADO")) {
-            btn.disabled = true;
-            matInput.classList.add('required-empty');
+        if (emb === "ABASTECIMENTO" && (!m || n.includes("NÃO LOCALIZADO"))) {
+            btn.disabled = true; btnC.disabled = true;
         } else {
-            btn.disabled = false;
-            matInput.classList.remove('required-empty');
+            btn.disabled = false; btnC.disabled = false;
         }
-        document.getElementById('preview').innerText = gerarTexto();
+
+        document.getElementById('preview').innerText = gerarTexto('completo');
+        document.getElementById('preview-curto').innerText = gerarTexto('curto');
     }
 
-    function gerarTexto() {
-        const embarque = document.getElementById('embarque').value;
-        const h = document.getElementById('hora').value;
-        const mi = document.getElementById('minuto').value;
-        const quantidade = document.getElementById('quantidade').value || "0";
-        const van = document.getElementById('van').value || "---";
-        const matricula = document.getElementById('matricula').value || "---";
-        const nome = document.getElementById('nome').value || "NÃO INFORMADO";
+    function gerarTexto(tipo) {
+        const emb = document.getElementById('embarque').value;
+        const h = sH.value;
+        const mi = sM.value;
+        const q = document.getElementById('quantidade').value || "0";
+        const v = document.getElementById('van').value || "---";
+        const m = document.getElementById('matricula').value || "---";
+        const n = document.getElementById('nome-exibicao').innerText;
+        const saudacao = obterSaudacao();
 
-        let texto = `*RELATÓRIO DE VANS*\n`;
-        texto += `📍 *Local:* ${embarque}\n`;
-        texto += `⏰ *Horário:* ${h}:${mi}\n`;
-        texto += (embarque === "ABASTECIMENTO") ? `🛣️ *KM:* ${quantidade}\n` : `👥 *Integrantes:* ${quantidade}\n`;
-        texto += `🚐 *Van:* ${van}\n`;
-        texto += `👤 *Motorista:* ${nome.toUpperCase()}\n`;
-        texto += `🆔 *Matrícula:* ${matricula}`;
-        return texto;
+        if (tipo === 'curto') {
+            return `${saudacao}\n\n${v}\n${emb}\n${q} ${(emb === "ABASTECIMENTO") ? 'KM' : 'Integrantes'}`;
+        } else {
+            let texto = `*RELATÓRIO DE VANS*\n`;
+            texto += `📍 *Local:* ${emb}\n`;
+            texto += `⏰ *Horário:* ${h}:${mi}\n`;
+            texto += (emb === "ABASTECIMENTO") ? `🛣️ *KM:* ${q}\n` : `👥 *Integrantes:* ${q}\n`;
+            texto += `🚐 *Van:* ${v}\n`;
+            texto += `👤 *Motorista:* ${n}\n`;
+            texto += `🆔 *Matrícula:* ${m}`;
+            return texto;
+        }
     }
 
-    function copiarRelatorio() {
-        const texto = gerarTexto();
+    function copiarRelatorio(tipo) {
+        const texto = gerarTexto(tipo);
         const dummy = document.createElement("textarea");
         document.body.appendChild(dummy);
         dummy.value = texto;
@@ -195,7 +221,9 @@
         document.getElementById('quantidade').value = "";
         document.getElementById('van').value = "";
         document.getElementById('matricula').value = "";
-        document.getElementById('nome').value = "";
+        const display = document.getElementById('nome-exibicao');
+        display.innerText = "Aguardando matrícula...";
+        display.style.color = "#444";
         verificarTipo();
     }
 </script>
