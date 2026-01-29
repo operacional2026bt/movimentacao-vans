@@ -125,15 +125,11 @@
     function obterSaudacao() {
         const h = parseInt(sH.value);
         const mi = parseInt(sM.value);
-        
-        // Bom dia: 00:01 até 11:59
         if ((h === 0 && mi >= 1) || (h > 0 && h < 12)) return "Bom dia!";
-        // Boa tarde: 12:00 até 18:00
         if (h >= 12 && h <= 18) {
             if (h === 18 && mi > 0) return "Boa noite!";
             return "Boa tarde!";
         }
-        // Boa noite: 18:01 até 00:00
         return "Boa noite!";
     }
 
@@ -161,20 +157,16 @@
         const q = document.getElementById('quantidade').value;
         const v = document.getElementById('van').value;
         const m = document.getElementById('matricula').value;
-        
         document.getElementById('preview-container').style.display = (q || v || m) ? 'block' : 'none';
-        
         const emb = document.getElementById('embarque').value;
         const n = document.getElementById('nome-exibicao').innerText;
         const btn = document.getElementById('btnCopiar');
         const btnC = document.getElementById('btnCopiarCurto');
-
         if (emb === "ABASTECIMENTO" && (!m || n.includes("NÃO LOCALIZADO"))) {
             btn.disabled = true; btnC.disabled = true;
         } else {
             btn.disabled = false; btnC.disabled = false;
         }
-
         document.getElementById('preview').innerText = gerarTexto('completo');
         document.getElementById('preview-curto').innerText = gerarTexto('curto');
     }
@@ -185,7 +177,7 @@
         const mi = sM.value;
         const q = document.getElementById('quantidade').value || "0";
         const v = document.getElementById('van').value || "---";
-        const m = document.getElementById('matricula').value || "---";
+        const m = document.getElementById('matricula').value;
         const n = document.getElementById('nome-exibicao').innerText;
         const saudacao = obterSaudacao();
 
@@ -196,9 +188,12 @@
             texto += `📍 *Local:* ${emb}\n`;
             texto += `⏰ *Horário:* ${h}:${mi}\n`;
             texto += (emb === "ABASTECIMENTO") ? `🛣️ *KM:* ${q}\n` : `👥 *Integrantes:* ${q}\n`;
-            texto += `🚐 *Van:* ${v}\n`;
-            texto += `👤 *Motorista:* ${n}\n`;
-            texto += `🆔 *Matrícula:* ${m}`;
+            texto += `🚐 *Van:* ${v}`;
+            
+            // SÓ APARECE SE A MATRÍCULA FOR DIGITADA
+            if (m) {
+                texto += `\n👤 *Motorista:* ${n}\n🆔 *Matrícula:* ${m}`;
+            }
             return texto;
         }
     }
@@ -211,7 +206,6 @@
         dummy.select();
         document.execCommand("copy");
         document.body.removeChild(dummy);
-        
         const status = document.getElementById('status');
         status.style.visibility = 'visible';
         setTimeout(() => { status.style.visibility = 'hidden'; }, 2000);
