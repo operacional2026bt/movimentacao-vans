@@ -80,7 +80,7 @@
 
     <div class="form-group">
         <label>Número da Van</label>
-        <input type="text" id="van" placeholder="Ex: VTR 130" oninput="validarVisibilidade()">
+        <input type="text" id="van" placeholder="Ex: 130" oninput="validarVisibilidade()">
     </div>
 
     <div class="form-group">
@@ -158,10 +158,12 @@
         const v = document.getElementById('van').value;
         const m = document.getElementById('matricula').value;
         document.getElementById('preview-container').style.display = (q || v || m) ? 'block' : 'none';
+        
         const emb = document.getElementById('embarque').value;
         const n = document.getElementById('nome-exibicao').innerText;
         const btn = document.getElementById('btnCopiar');
         const btnC = document.getElementById('btnCopiarCurto');
+        
         if (emb === "ABASTECIMENTO" && (!m || n.includes("NÃO LOCALIZADO"))) {
             btn.disabled = true; btnC.disabled = true;
         } else {
@@ -176,21 +178,22 @@
         const h = sH.value;
         const mi = sM.value;
         const q = document.getElementById('quantidade').value || "0";
-        const v = document.getElementById('van').value || "---";
+        const vRaw = document.getElementById('van').value || "---";
         const m = document.getElementById('matricula').value;
         const n = document.getElementById('nome-exibicao').innerText;
         const saudacao = obterSaudacao();
 
+        // GARANTE QUE TENHA "VTR " NO INFORME RÁPIDO
+        const vFormatada = (vRaw !== "---" && !vRaw.toUpperCase().startsWith("VTR")) ? "VTR " + vRaw : vRaw;
+
         if (tipo === 'curto') {
-            return `${saudacao}\n\n${v}\n${emb}\n${q} ${(emb === "ABASTECIMENTO") ? 'KM' : 'Integrantes'}`;
+            return `${saudacao}\n\n${vFormatada}\n${emb}\n${q} ${(emb === "ABASTECIMENTO") ? 'KM' : 'Integrantes'}`;
         } else {
             let texto = `*RELATÓRIO DE VANS*\n`;
             texto += `📍 *Local:* ${emb}\n`;
             texto += `⏰ *Horário:* ${h}:${mi}\n`;
             texto += (emb === "ABASTECIMENTO") ? `🛣️ *KM:* ${q}\n` : `👥 *Integrantes:* ${q}\n`;
-            texto += `🚐 *Van:* ${v}`;
-            
-            // SÓ APARECE SE A MATRÍCULA FOR DIGITADA
+            texto += `🚐 *Van:* ${vRaw}`;
             if (m) {
                 texto += `\n👤 *Motorista:* ${n}\n🆔 *Matrícula:* ${m}`;
             }
